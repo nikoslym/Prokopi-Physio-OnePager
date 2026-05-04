@@ -122,6 +122,7 @@
   .nav-inner {
     display: flex; align-items: center; justify-content: space-between;
     height: 72px;
+    position: relative;
   }
   .brand {
     display: flex; align-items: center; gap: 10px;
@@ -148,6 +149,8 @@
   .nav-links a:hover { color: var(--accent-deep); }
   .nav-cta { display: inline-flex; }
   .nav-cta .btn { padding: 10px 18px; font-size: .9rem; }
+  /* Desktop: panel wrapper is transparent to layout */
+  .nav-mobile-panel { display: contents; }
   .nav-toggle {
     display: none;
     width: 42px; height: 42px;
@@ -168,28 +171,45 @@
   .nav-toggle span::after  { top:  6px; }
 
   @media (max-width: 920px) {
-    .nav-links, .nav-cta { display: none; }
     .nav-toggle { display: inline-flex; }
-    .nav.is-open .nav-links {
-      display: flex;
-      position: absolute; top: 72px; left: 0; right: 0;
-      flex-direction: column; align-items: stretch;
-      gap: 0;
+    .nav-mobile-panel {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      flex-direction: column;
+      align-items: stretch;
       background: #fff;
       border-bottom: 1px solid var(--line);
-      padding: 8px 0;
+      box-shadow: 0 16px 40px rgba(20, 32, 43, 0.08);
+      z-index: 100;
+      padding: 8px 0 0;
     }
-    .nav.is-open .nav-links a {
+    .nav.is-open .nav-mobile-panel {
+      display: flex;
+    }
+    .nav-links {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0;
+      width: 100%;
+    }
+    .nav-links a {
       padding: 14px 24px;
       border-bottom: 1px solid var(--bg-soft);
     }
-    .nav.is-open .nav-cta {
-      display: flex; justify-content: center;
+    .nav-links li:last-child a { border-bottom: none; }
+    .nav-cta {
+      display: flex;
+      justify-content: center;
       padding: 16px 24px 20px;
+      margin: 0;
+      border-top: 1px solid var(--line);
       background: #fff;
-      position: absolute; top: calc(72px + 6 * 51px); left: 0; right: 0;
-      border-bottom: 1px solid var(--line);
     }
+    .nav-cta .btn { width: 100%; max-width: 320px; justify-content: center; }
   }
 
   /* ---------- Hero ---------- */
@@ -353,15 +373,20 @@
   /* ---------- About ---------- */
   .about-grid {
     display: grid;
-    grid-template-columns: 0.9fr 1.1fr;
-    gap: 64px;
+    grid-template-columns: auto 1fr;
+    gap: clamp(40px, 5vw, 64px);
     align-items: center;
+  }
+  .about-photo-wrap {
+    width: 100%;
+    max-width: 288px;
+    justify-self: end;
   }
   .about-photo {
     position: relative;
     border-radius: var(--radius-xl);
     overflow: hidden;
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--shadow-md);
     aspect-ratio: 4/5;
     background: var(--bg-soft);
   }
@@ -405,7 +430,7 @@
   }
   @media (max-width: 900px) {
     .about-grid { grid-template-columns: 1fr; gap: 40px; }
-    .about-photo { max-width: 420px; margin: 0 auto; }
+    .about-photo-wrap { max-width: min(288px, 78vw); margin: 0 auto; justify-self: center; }
   }
 
   /* ---------- Special treatments ---------- */
@@ -485,27 +510,135 @@
     .reviews-card { grid-template-columns: 1fr; padding: 28px; }
   }
 
-  /* ---------- Gallery ---------- */
-  .gallery-grid {
-    columns: 3;
-    column-gap: 18px;
+  /* ---------- Gallery (carousel) ---------- */
+  .gallery-carousel {
+    max-width: 920px;
+    margin: 0 auto;
   }
-  .gallery-grid .gitem {
-    margin: 0 0 18px;
-    break-inside: avoid;
+  .gallery-stage {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .gallery-slides {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+    aspect-ratio: 16 / 10;
+    max-height: min(56vh, 520px);
     border-radius: var(--radius-lg);
     overflow: hidden;
-    box-shadow: var(--shadow-sm);
     background: var(--bg-soft);
-    transition: transform .25s ease, box-shadow .25s ease;
-  }
-  .gallery-grid .gitem:hover {
-    transform: translateY(-2px);
+    border: 1px solid var(--line);
     box-shadow: var(--shadow-md);
   }
-  .gallery-grid img { width: 100%; height: auto; display: block; }
-  @media (max-width: 900px) { .gallery-grid { columns: 2; } }
-  @media (max-width: 560px) { .gallery-grid { columns: 1; } }
+  .gallery-slide {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    pointer-events: none;
+  }
+  .gallery-slide.is-active {
+    opacity: 1;
+    z-index: 1;
+  }
+  .gallery-arrow {
+    flex: 0 0 auto;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--ink-2);
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    box-shadow: var(--shadow-sm);
+    transition: background .2s ease, border-color .2s ease, color .2s ease;
+  }
+  .gallery-arrow:hover {
+    border-color: rgba(42,138,138,.35);
+    color: var(--accent-deep);
+    background: var(--accent-soft);
+  }
+  .gallery-arrow svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .gallery-dots {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 20px;
+  }
+  .gallery-dot {
+    width: 8px;
+    height: 8px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: #c5ced6;
+    cursor: pointer;
+    transition: background .2s ease, transform .2s ease;
+  }
+  .gallery-dot:hover { background: #9aa7b4; }
+  .gallery-dot.is-active {
+    background: var(--accent);
+    transform: scale(1.15);
+  }
+  .gallery-thumbs {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 18px;
+    padding: 4px 0 2px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+  .gallery-thumb {
+    flex: 0 0 auto;
+    width: 72px;
+    height: 54px;
+    padding: 0;
+    border: 2px solid transparent;
+    border-radius: 10px;
+    overflow: hidden;
+    cursor: pointer;
+    background: var(--bg-soft);
+    box-shadow: var(--shadow-sm);
+    transition: border-color .2s ease, opacity .2s ease;
+    opacity: 0.72;
+  }
+  .gallery-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .gallery-thumb:hover { opacity: 1; }
+  .gallery-thumb.is-current {
+    border-color: var(--accent);
+    opacity: 1;
+  }
+  @media (max-width: 640px) {
+    .gallery-stage { gap: 8px; }
+    .gallery-arrow {
+      width: 40px;
+      height: 40px;
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 3;
+    }
+    .gallery-arrow.gallery-prev { left: 10px; }
+    .gallery-arrow.gallery-next { right: 10px; }
+    .gallery-slides { aspect-ratio: 4 / 3; max-height: min(48vh, 380px); }
+    .gallery-thumb { width: 64px; height: 48px; }
+  }
 
   /* ---------- Appointment CTA ---------- */
   .cta-band {
@@ -634,6 +767,7 @@
   @media (prefers-reduced-motion: reduce) {
     .reveal { opacity: 1; transform: none; transition: none; }
     html { scroll-behavior: auto; }
+    .gallery-slide { transition: opacity 0.2s ease; }
   }
 </style>
 </head>
@@ -646,20 +780,22 @@
       <span class="brand-mark">P</span>
       <span>Prokopi Physio</span>
     </a>
-    <nav>
-      <ul class="nav-links">
-        <li><a href="#hero">Αρχική</a></li>
-        <li><a href="#services">Υπηρεσίες</a></li>
-        <li><a href="#about">Η Νίκη Προκόπη</a></li>
-        <li><a href="#reviews">Αξιολογήσεις</a></li>
-        <li><a href="#gallery">Gallery</a></li>
-        <li><a href="#contact">Επικοινωνία</a></li>
-      </ul>
-    </nav>
-    <div class="nav-cta">
-      <a class="btn btn-primary" href="tel:+302110159622">Κλείστε Ραντεβού</a>
+    <div class="nav-mobile-panel" id="navMobilePanel">
+      <nav aria-label="Κύριο μενού">
+        <ul class="nav-links">
+          <li><a href="#hero">Αρχική</a></li>
+          <li><a href="#services">Υπηρεσίες</a></li>
+          <li><a href="#about">Η Νίκη Προκόπη</a></li>
+          <li><a href="#reviews">Αξιολογήσεις</a></li>
+          <li><a href="#gallery">Gallery</a></li>
+          <li><a href="#contact">Επικοινωνία</a></li>
+        </ul>
+      </nav>
+      <div class="nav-cta">
+        <a class="btn btn-primary" href="tel:+302110159622">Κλείστε Ραντεβού</a>
+      </div>
     </div>
-    <button class="nav-toggle" aria-label="Μενού" id="navToggle"><span></span></button>
+    <button type="button" class="nav-toggle" aria-label="Μενού" aria-expanded="false" aria-controls="navMobilePanel" id="navToggle"><span></span></button>
   </div>
 </header>
 
@@ -805,11 +941,13 @@
 <section id="about">
   <div class="container">
     <div class="about-grid">
-      <div class="about-photo reveal">
-        <img src="assets/DrNikiProkopi.webp" alt="Νίκη Προκόπη — Επιστημονικά Υπεύθυνη">
-        <div class="about-name-card">
-          <strong>Νίκη Προκόπη</strong>
-          <span>Επιστημονικά Υπεύθυνη · PhD</span>
+      <div class="about-photo-wrap reveal">
+        <div class="about-photo">
+          <img src="assets/DrNikiProkopi.webp" alt="Νίκη Προκόπη — Επιστημονικά Υπεύθυνη">
+          <div class="about-name-card">
+            <strong>Νίκη Προκόπη</strong>
+            <span>Επιστημονικά Υπεύθυνη · PhD</span>
+          </div>
         </div>
       </div>
 
@@ -894,16 +1032,48 @@
       <h2>Ο χώρος και οι θεραπείες μας</h2>
       <p class="lead">Μια ματιά στις εγκαταστάσεις, τον εξοπλισμό και τις θεραπευτικές εφαρμογές του Prokopi Physio.</p>
     </div>
-    <div class="gallery-grid">
-      <figure class="gitem reveal"><img src="assets/ProkopiPhysio (4).webp" alt="Prokopi Physio — εγκαταστάσεις" loading="lazy"></figure>
-      <figure class="gitem reveal"><img src="assets/ProkopiPhysio (7).webp" alt="Prokopi Physio — χώρος θεραπείας" loading="lazy"></figure>
-      <figure class="gitem reveal"><img src="assets/ProkopiPhysio (5).webp" alt="Prokopi Physio — εξοπλισμός" loading="lazy"></figure>
-      <figure class="gitem reveal"><img src="assets/ProkopiPhysio (9).webp" alt="Prokopi Physio — θεραπεία" loading="lazy"></figure>
-      <figure class="gitem reveal"><img src="assets/ProkopiPhysio (6).webp" alt="Prokopi Physio — clinical pilates" loading="lazy"></figure>
-      <figure class="gitem reveal"><img src="assets/ProkopiPhysio (10).webp" alt="Prokopi Physio — αποκατάσταση" loading="lazy"></figure>
-      <figure class="gitem reveal"><img src="assets/ProkopiPhysio (12).webp" alt="Prokopi Physio — συνεδρία" loading="lazy"></figure>
-      <figure class="gitem reveal"><img src="assets/ProkopiPhysio (11).webp" alt="Prokopi Physio — εξειδικευμένες θεραπείες" loading="lazy"></figure>
-      <figure class="gitem reveal"><img src="assets/ProkopiPhysio (13).webp" alt="Prokopi Physio — λεπτομέρεια" loading="lazy"></figure>
+    <div class="gallery-carousel reveal" tabindex="0" aria-roledescription="carousel" aria-label="Gallery Prokopi Physio">
+      <div class="gallery-stage">
+        <button type="button" class="gallery-arrow gallery-prev" aria-label="Προηγούμενη εικόνα">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <div class="gallery-slides">
+          <img class="gallery-slide is-active" src="assets/ProkopiPhysio (4).webp" alt="Prokopi Physio — εγκαταστάσεις" loading="lazy" decoding="async">
+          <img class="gallery-slide" src="assets/ProkopiPhysio (7).webp" alt="Prokopi Physio — χώρος θεραπείας" loading="lazy" decoding="async">
+          <img class="gallery-slide" src="assets/ProkopiPhysio (5).webp" alt="Prokopi Physio — εξοπλισμός" loading="lazy" decoding="async">
+          <img class="gallery-slide" src="assets/ProkopiPhysio (9).webp" alt="Prokopi Physio — θεραπεία" loading="lazy" decoding="async">
+          <img class="gallery-slide" src="assets/ProkopiPhysio (6).webp" alt="Prokopi Physio — clinical pilates" loading="lazy" decoding="async">
+          <img class="gallery-slide" src="assets/ProkopiPhysio (10).webp" alt="Prokopi Physio — αποκατάσταση" loading="lazy" decoding="async">
+          <img class="gallery-slide" src="assets/ProkopiPhysio (12).webp" alt="Prokopi Physio — συνεδρία" loading="lazy" decoding="async">
+          <img class="gallery-slide" src="assets/ProkopiPhysio (11).webp" alt="Prokopi Physio — εξειδικευμένες θεραπείες" loading="lazy" decoding="async">
+          <img class="gallery-slide" src="assets/ProkopiPhysio (13).webp" alt="Prokopi Physio — λεπτομέρεια" loading="lazy" decoding="async">
+        </div>
+        <button type="button" class="gallery-arrow gallery-next" aria-label="Επόμενη εικόνα">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+      </div>
+      <div class="gallery-dots" role="tablist" aria-label="Επιλογή εικόνας">
+        <button type="button" class="gallery-dot is-active" role="tab" aria-selected="true" aria-label="Εικόνα 1 από 9"></button>
+        <button type="button" class="gallery-dot" role="tab" aria-selected="false" aria-label="Εικόνα 2 από 9"></button>
+        <button type="button" class="gallery-dot" role="tab" aria-selected="false" aria-label="Εικόνα 3 από 9"></button>
+        <button type="button" class="gallery-dot" role="tab" aria-selected="false" aria-label="Εικόνα 4 από 9"></button>
+        <button type="button" class="gallery-dot" role="tab" aria-selected="false" aria-label="Εικόνα 5 από 9"></button>
+        <button type="button" class="gallery-dot" role="tab" aria-selected="false" aria-label="Εικόνα 6 από 9"></button>
+        <button type="button" class="gallery-dot" role="tab" aria-selected="false" aria-label="Εικόνα 7 από 9"></button>
+        <button type="button" class="gallery-dot" role="tab" aria-selected="false" aria-label="Εικόνα 8 από 9"></button>
+        <button type="button" class="gallery-dot" role="tab" aria-selected="false" aria-label="Εικόνα 9 από 9"></button>
+      </div>
+      <div class="gallery-thumbs">
+        <button type="button" class="gallery-thumb is-current" aria-label="Εικόνα 1 από 9"><img src="assets/ProkopiPhysio (4).webp" alt=""></button>
+        <button type="button" class="gallery-thumb" aria-label="Εικόνα 2 από 9"><img src="assets/ProkopiPhysio (7).webp" alt=""></button>
+        <button type="button" class="gallery-thumb" aria-label="Εικόνα 3 από 9"><img src="assets/ProkopiPhysio (5).webp" alt=""></button>
+        <button type="button" class="gallery-thumb" aria-label="Εικόνα 4 από 9"><img src="assets/ProkopiPhysio (9).webp" alt=""></button>
+        <button type="button" class="gallery-thumb" aria-label="Εικόνα 5 από 9"><img src="assets/ProkopiPhysio (6).webp" alt=""></button>
+        <button type="button" class="gallery-thumb" aria-label="Εικόνα 6 από 9"><img src="assets/ProkopiPhysio (10).webp" alt=""></button>
+        <button type="button" class="gallery-thumb" aria-label="Εικόνα 7 από 9"><img src="assets/ProkopiPhysio (12).webp" alt=""></button>
+        <button type="button" class="gallery-thumb" aria-label="Εικόνα 8 από 9"><img src="assets/ProkopiPhysio (11).webp" alt=""></button>
+        <button type="button" class="gallery-thumb" aria-label="Εικόνα 9 από 9"><img src="assets/ProkopiPhysio (13).webp" alt=""></button>
+      </div>
     </div>
   </div>
 </section>
@@ -1029,9 +1199,21 @@
 
   // Mobile menu
   const toggle = document.getElementById('navToggle');
-  toggle && toggle.addEventListener('click', () => nav.classList.toggle('is-open'));
+  function setMobileNavOpen(open) {
+    if (!nav || !toggle) return;
+    nav.classList.toggle('is-open', open);
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    document.body.style.overflow = open ? 'hidden' : '';
+  }
+  toggle && toggle.addEventListener('click', () => setMobileNavOpen(!nav.classList.contains('is-open')));
   document.querySelectorAll('.nav-links a').forEach(a => {
-    a.addEventListener('click', () => nav.classList.remove('is-open'));
+    a.addEventListener('click', () => setMobileNavOpen(false));
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') setMobileNavOpen(false);
+  });
+  window.addEventListener('resize', () => {
+    if (window.innerWidth > 920) setMobileNavOpen(false);
   });
 
   // Reveal on scroll
@@ -1048,6 +1230,36 @@
   } else {
     document.querySelectorAll('.reveal').forEach(el => el.classList.add('is-in'));
   }
+
+  // Gallery carousel
+  (function () {
+    const root = document.querySelector('.gallery-carousel');
+    if (!root) return;
+    const slides = Array.from(root.querySelectorAll('.gallery-slide'));
+    const dots = Array.from(root.querySelectorAll('.gallery-dot'));
+    const thumbs = Array.from(root.querySelectorAll('.gallery-thumb'));
+    const prev = root.querySelector('.gallery-prev');
+    const next = root.querySelector('.gallery-next');
+    const n = slides.length;
+    let i = 0;
+    function go(idx) {
+      i = ((idx % n) + n) % n;
+      slides.forEach((s, j) => s.classList.toggle('is-active', j === i));
+      dots.forEach((d, j) => {
+        d.classList.toggle('is-active', j === i);
+        d.setAttribute('aria-selected', j === i ? 'true' : 'false');
+      });
+      thumbs.forEach((t, j) => t.classList.toggle('is-current', j === i));
+    }
+    prev.addEventListener('click', () => go(i - 1));
+    next.addEventListener('click', () => go(i + 1));
+    dots.forEach((d, j) => d.addEventListener('click', () => go(j)));
+    thumbs.forEach((t, j) => t.addEventListener('click', () => go(j)));
+    root.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowLeft') { e.preventDefault(); go(i - 1); }
+      if (e.key === 'ArrowRight') { e.preventDefault(); go(i + 1); }
+    });
+  })();
 </script>
 
 </body>
